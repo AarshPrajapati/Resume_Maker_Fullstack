@@ -1,16 +1,10 @@
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-  signInWithPopup,
-  GoogleAuthProvider,
-} from "firebase/auth";
-import { auth } from "../firebase";
-import { useNavigate, Link } from "react-router-dom";
-import { useState } from "react";
-import AuthCard from "../components/AuthCard";
-import { authErrorMessage } from "../utils/authErrors";
-import { updateProfile } from "firebase/auth";
 
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, GoogleAuthProvider, updateProfile } from "firebase/auth";
+import { auth } from "../firebase";
+import AuthLayout from "../components/AuthLayout";
+import { authErrorMessage } from "../utils/authErrors";
 
 const provider = new GoogleAuthProvider();
 
@@ -18,33 +12,26 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const signup = async () => {
-  try {
-    setError("");
-    setMessage("");
-    setLoading(true);
+    try {
+      setError("");
+      setLoading(true);
 
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(res.user, {
-      displayName: name || "User",
-    });
-    await sendEmailVerification(res.user);
+      const res = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(res.user, { displayName: name || "User" });
+      await sendEmailVerification(res.user);
 
-    // ✅ Redirect immediately
-    navigate("/verify-email", { replace: true });
-
-  } catch (err) {
-    setError(authErrorMessage(err.code));
-  } finally {
-    setLoading(false);
-  }
-};
-
+      navigate("/verify-email", { replace: true });
+    } catch (err) {
+      setError(authErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const googleSignup = async () => {
     try {
@@ -59,50 +46,44 @@ export default function Signup() {
   };
 
   return (
-    <AuthCard title="Create Your Account">
+    <AuthLayout title="Create Your Account">
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-      {message && <p className="text-green-600 text-sm mb-4">{message}</p>}
+
       <input
-        className="w-full border p-3 rounded mb-3"
-        placeholder="Full name"
+        className="input-field"
+        placeholder="Full Name"
+        value={name}
         onChange={(e) => setName(e.target.value)}
       />
 
       <input
-        className="w-full border p-3 rounded mb-3"
+        className="input-field"
         placeholder="Email"
+        value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
 
       <input
+        className="input-field"
         type="password"
-        className="w-full border p-3 rounded mb-4"
         placeholder="Password"
+        value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button
-        onClick={signup}
-        disabled={loading}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white w-full py-3 rounded mb-3 disabled:opacity-50"
-      >
-        {loading ? "Creating account..." : "Sign up"}
+      <button onClick={signup} disabled={loading} className="primary-btn">
+        {loading ? "Creating account..." : "Sign Up"}
       </button>
 
-      <button
-        onClick={googleSignup}
-        disabled={loading}
-        className="border w-full py-3 rounded mb-4"
-      >
+      <button onClick={googleSignup} disabled={loading} className="secondary-btn">
         Continue with Google
       </button>
 
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-sm text-slate-300">
         Already have an account?{" "}
-        <Link to="/login" className="text-indigo-600 font-medium">
-          Login
-        </Link>
+        <Link to="/login" className="link-text font-medium">Login</Link>
       </p>
-    </AuthCard>
+    </AuthLayout>
   );
 }
+

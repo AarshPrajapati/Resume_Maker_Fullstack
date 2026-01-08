@@ -1,12 +1,8 @@
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-} from "firebase/auth";
-import { auth } from "../firebase";
-import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
-import AuthCard from "../components/AuthCard";
+import { useNavigate, Link } from "react-router-dom";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../firebase";
+import AuthLayout from "../components/AuthLayout";
 import { authErrorMessage } from "../utils/authErrors";
 
 const provider = new GoogleAuthProvider();
@@ -43,50 +39,39 @@ export default function Login() {
   };
 
   return (
-    <AuthCard title="Welcome Back">
+    <AuthLayout title="Welcome Back">
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
       <input
-        className="w-full border p-3 rounded mb-3"
+        className="input-field"
         placeholder="Email"
+        value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
 
       <input
+        className="input-field"
         type="password"
-        className="w-full border p-3 rounded mb-4"
         placeholder="Password"
+        value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Link
-          to="/forgot-password"
-          className="text-sm text-indigo-600 block text-right mb-4"
-        >
-          Forgot password?
-        </Link>
 
-      <button
-        onClick={login}
-        disabled={loading}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white w-full py-3 rounded mb-3 disabled:opacity-50"
-      >
+      <Link to="/forgot-password" className="text-sm link-text block text-right mb-4">
+        Forgot password?
+      </Link>
+
+      <button onClick={login} disabled={loading} className="primary-btn">
         {loading ? "Logging in..." : "Login"}
       </button>
 
-      <button
-        onClick={googleLogin}
-        disabled={loading}
-        className="border w-full py-3 rounded mb-4"
-      >
+      <button onClick={googleLogin} disabled={loading} className="secondary-btn">
         Continue with Google
       </button>
 
-      <p className="text-center text-sm text-gray-600">
-        Don’t have an account?{" "}
-        <Link to="/signup" className="text-indigo-600 font-medium">
-          Sign up
-        </Link>
+      <p className="text-center text-sm text-slate-300">
+        Don’t have an account? <Link to="/signup" className="link-text font-medium">Sign up</Link>
       </p>
-    </AuthCard>
+    </AuthLayout>
   );
 }

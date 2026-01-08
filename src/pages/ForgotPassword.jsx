@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase";
-import { useState } from "react";
-import AuthCard from "../components/AuthCard";
-import { authErrorMessage } from "../utils/authErrors";
 import { Link } from "react-router-dom";
+import AuthLayout from "../components/AuthLayout";
+import { authErrorMessage } from "../utils/authErrors";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -24,27 +24,24 @@ export default function ForgotPassword() {
   };
 
   return (
-    <AuthCard title="Reset Password">
+    <AuthLayout title="Reset Password">
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-      {message && <p className="text-green-600 text-sm mb-4">{message}</p>}
+      {message && <p className="text-green-500 text-sm mb-4">{message}</p>}
 
       <input
-        className="w-full border p-3 rounded mb-4"
+        className="input-field mb-4"
         placeholder="Enter your email"
+        value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
 
-      <button
-        onClick={resetPassword}
-        disabled={loading}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white w-full py-3 rounded disabled:opacity-50"
-      >
+      <button onClick={resetPassword} disabled={loading} className="primary-btn">
         {loading ? "Sending..." : "Send Reset Link"}
       </button>
 
-      <p className="text-center text-sm mt-4">
-        <Link to="/login" className="text-indigo-600">Back to Login</Link>
+      <p className="text-center text-slate-300 mt-4">
+        <Link to="/login" className="link-text">Back to Login</Link>
       </p>
-    </AuthCard>
+    </AuthLayout>
   );
 }
