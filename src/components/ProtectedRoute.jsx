@@ -5,7 +5,7 @@ export default function ProtectedRoute({ children }) {
   const { user, dbUser, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null;
+  if (loading) return <div>Loading</div>;
 
   // Not logged in
   if (!user) {

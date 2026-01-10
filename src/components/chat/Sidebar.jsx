@@ -88,7 +88,9 @@
 
 // export default Sidebar;
 import React, { useState, useEffect, useRef } from "react";
-import { Trash2, Pencil, Star, Plus, Search, MessageSquare, Clock } from "lucide-react";
+import { Trash2, Pencil, Star, Plus, Search, MessageSquare, Clock, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Sidebar = ({
   sessions,
@@ -103,22 +105,23 @@ const Sidebar = ({
 }) => {
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
   const containerRef = useRef(null);
+  const { logout, dbUser } = useAuth();
 
-  // Cancel rename on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
-        editingId &&
         containerRef.current &&
         !containerRef.current.contains(e.target)
       ) {
         setEditingId(null);
+        setProfileOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [editingId]);
+  }, []);
 
   const formatTime = (date) => {
     if (!date) return "";
@@ -131,10 +134,8 @@ const Sidebar = ({
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="w-72 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-200 flex flex-col h-screen"
-    >
+    <div ref={containerRef} className="w-72 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-200 flex flex-col h-screen">
+      {/* Header & New Chat */}
       <div className="px-5 py-5 border-b border-slate-800/50">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
@@ -144,7 +145,6 @@ const Sidebar = ({
             <span className="font-semibold text-white">Conversations</span>
           </div>
         </div>
-
         <button
           onClick={onNewSession}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm font-medium rounded-xl transition-all duration-300 shadow-lg shadow-indigo-500/25"
@@ -154,6 +154,7 @@ const Sidebar = ({
         </button>
       </div>
 
+      {/* Search */}
       <div className="px-4 py-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -166,6 +167,7 @@ const Sidebar = ({
         </div>
       </div>
 
+      {/* Sessions */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
         {sessions.map((s) => (
           <div
@@ -177,44 +179,26 @@ const Sidebar = ({
             }`}
           >
             <div className="px-4 py-3 flex items-start justify-between">
-              <div
-                className="flex-1 min-w-0"
-                onClick={() => onSelectSession(s.sessionId)}
-              >
+              <div className="flex-1 min-w-0" onClick={() => onSelectSession(s.sessionId)}>
                 {editingId === s.sessionId ? (
                   <input
                     value={name}
                     autoFocus
                     onChange={(e) => setName(e.target.value)}
-                    onBlur={() => {
-                      onRename(s.sessionId, name);
-                      setEditingId(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        onRename(s.sessionId, name);
-                        setEditingId(null);
-                      }
-                    }}
+                    onBlur={() => { onRename(s.sessionId, name); setEditingId(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { onRename(s.sessionId, name); setEditingId(null); } }}
                     className="w-full bg-slate-700 text-white px-2 py-1 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
                   <div>
                     <div className="flex items-center gap-2">
-                      {s.pinned && (
-                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      )}
-                      <span className="text-sm font-medium text-white truncate">
-                        {s.name || "New Chat"}
-                      </span>
+                      {s.pinned && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                      <span className="text-sm font-medium text-white truncate">{s.name || "New Chat"}</span>
                     </div>
                     {s.lastActiveAt && (
                       <div className="flex items-center gap-1.5 mt-1">
                         <Clock className="w-3 h-3 text-slate-500" />
-                        <span className="text-xs text-slate-500">
-                          {formatTime(s.lastActiveAt)}
-                        </span>
+                        <span className="text-xs text-slate-500">{formatTime(s.lastActiveAt)}</span>
                       </div>
                     )}
                   </div>
@@ -223,43 +207,13 @@ const Sidebar = ({
 
               {/* Action buttons */}
               <div className="hidden group-hover:flex items-center gap-1 ml-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPin(s.sessionId);
-                  }}
-                  className={`p-1.5 rounded-lg transition-colors relative ${
-                    s.pinned
-                      ? "text-amber-400"
-                      : "text-slate-400 hover:text-amber-400 hover:bg-slate-700"
-                  }`}
-                  title={s.pinned ? "Unpin" : "Pin"}
-                >
-                  <Star
-                    className={`w-3.5 h-3.5 ${s.pinned ? "fill-amber-400" : ""}`}
-                  />
+                <button onClick={(e) => { e.stopPropagation(); onPin(s.sessionId); }} className={`p-1.5 rounded-lg transition-colors relative ${s.pinned ? "text-amber-400" : "text-slate-400 hover:text-amber-400 hover:bg-slate-700"}`} title={s.pinned ? "Unpin" : "Pin"}>
+                  <Star className={`w-3.5 h-3.5 ${s.pinned ? "fill-amber-400" : ""}`} />
                 </button>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingId(s.sessionId);
-                    setName(s.name || "");
-                  }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors relative"
-                  title="Rename"
-                >
+                <button onClick={(e) => { e.stopPropagation(); setEditingId(s.sessionId); setName(s.name || ""); }} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors relative" title="Rename">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(s.sessionId);
-                  }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors relative"
-                  title="Delete"
-                >
+                <button onClick={(e) => { e.stopPropagation(); onDelete(s.sessionId); }} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors relative" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -268,8 +222,31 @@ const Sidebar = ({
         ))}
       </div>
 
-      <div className="px-4 py-4 border-t border-slate-800/50">
-        <p className="text-xs text-slate-500 text-center">Resume AI Assistant</p>
+      {/* Profile & Footer */}
+      <div className="px-4 py-4 border-t border-slate-800/50 relative">
+        <button
+          onClick={() => setProfileOpen(!profileOpen)}
+          className="flex items-center gap-2 w-full text-sm hover:bg-slate-800/50 px-3 py-2 rounded transition"
+        >
+          <User className="w-4 h-4" />
+          {dbUser?.name || "Profile"}
+        </button>
+
+        {profileOpen && (
+          <div className="absolute bottom-16 left-3 w-64 bg-slate-800 rounded-lg shadow-lg p-3 z-20">
+            <Link to="/profile" className="block px-3 py-2 hover:bg-slate-700 rounded">
+              Edit Profile
+            </Link>
+            <button onClick={logout} className="w-full text-left px-3 py-2 hover:bg-slate-700 rounded">
+              Logout
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-center gap-2 mt-3">
+          <img src="/logo.svg" className="w-5 h-5" />
+          <span className="text-xs text-slate-500">Resume AI</span>
+        </div>
       </div>
     </div>
   );

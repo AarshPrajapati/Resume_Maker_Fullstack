@@ -395,6 +395,9 @@ export default function Chat() {
   useEffect(() => {
     if (sessionId) localStorage.setItem("lastSessionId", sessionId);
   }, [sessionId]);
+  useEffect(() => {
+  document.title = "Resume AI • Chat";
+  }, []);
 
   /* ===== Firebase auth + profile ===== */
   useEffect(() => {
@@ -733,7 +736,8 @@ export default function Chat() {
             </button>
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <Sparkles className="w-5 h-5 text-white" />
+                {/* <Sparkles className="w-5 h-5 text-white" /> */}
+                <img src="/logo.svg" className="w-9 h-9" />
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-semibold text-slate-800">Resume AI</h1>

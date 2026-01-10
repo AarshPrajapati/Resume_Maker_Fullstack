@@ -27,24 +27,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
+  const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
+    setUser(firebaseUser);
 
-      if (firebaseUser) {
-        try {
-          await fetchDbUser(firebaseUser);
-        } catch (err) {
-          console.error("Backend sync failed", err);
-        }
-      } else {
-        setDbUser(null);
-      }
+    if (firebaseUser) {
+      // fire fetchDbUser in background — do NOT block UI
+      fetchDbUser(firebaseUser).catch(err => console.error("Backend sync failed", err));
+    } else {
+      setDbUser(null);
+    }
 
-      setLoading(false);
-    });
+    // Always set loading false immediately
+    setLoading(false);
+  });
 
-    return unsub;
+  return unsub;
   }, []);
+
 
   const refreshUser = async () => {
     if (auth.currentUser) {
@@ -60,7 +59,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, dbUser, loading, logout, refreshUser }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
