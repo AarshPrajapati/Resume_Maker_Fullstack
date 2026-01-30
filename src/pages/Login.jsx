@@ -4,6 +4,10 @@ import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 
 import { auth } from "../firebase";
 import AuthLayout from "../components/AuthLayout";
 import { authErrorMessage } from "../utils/authErrors";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
+import { Mail, Lock } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 const provider = new GoogleAuthProvider();
 
@@ -39,39 +43,76 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout title="Welcome Back">
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+    <AuthLayout 
+      title="Welcome Back" 
+      subtitle="Enter your credentials to access your account"
+    >
+      {error && (
+        <div className="p-4 mb-6 text-sm text-red-200 bg-red-500/10 border border-red-500/20 rounded-xl animate-shake">
+          {error}
+        </div>
+      )}
 
-      <input
-        className="input-field"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <div className="space-y-4">
+        <Input
+          placeholder="Email Address"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          icon={Mail}
+        />
 
-      <input
-        className="input-field"
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <div>
+          <Input
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            icon={Lock}
+            className="mb-2"
+          />
+          <Link 
+            to="/forgot-password" 
+            className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors block text-right"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
-      <Link to="/forgot-password" className="text-sm link-text block text-right mb-4">
-        Forgot password?
-      </Link>
+        <Button 
+          onClick={login} 
+          isLoading={loading} 
+          className="w-full mt-2"
+        >
+          Sign In
+        </Button>
 
-      <button onClick={login} disabled={loading} className="primary-btn">
-        {loading ? "Logging in..." : "Login"}
-      </button>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-slate-900 text-slate-400">Or continue with</span>
+          </div>
+        </div>
 
-      <button onClick={googleLogin} disabled={loading} className="secondary-btn">
-        Continue with Google
-      </button>
+        <Button 
+          onClick={googleLogin} 
+          disabled={loading} 
+          variant="secondary"
+          className="w-full flex items-center justify-center gap-2"
+        >
+          <FcGoogle size={20} />
+          Sign in with Google
+        </Button>
 
-      <p className="text-center text-sm text-slate-300">
-        Don’t have an account? <Link to="/signup" className="link-text font-medium">Sign up</Link>
-      </p>
+        <p className="mt-8 text-center text-sm text-slate-400">
+          Don’t have an account?{" "}
+          <Link to="/signup" className="text-indigo-400 font-medium hover:text-indigo-300 transition-colors">
+            Create an account
+          </Link>
+        </p>
+      </div>
     </AuthLayout>
   );
 }

@@ -88,7 +88,7 @@
 
 // export default Sidebar;
 import React, { useState, useEffect, useRef } from "react";
-import { Trash2, Pencil, Star, Plus, Search, MessageSquare, Clock, User } from "lucide-react";
+import { Trash2, Pencil, Star, Plus, Search, MessageSquare, Clock, User, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -133,119 +133,171 @@ const Sidebar = ({
     return `${Math.floor(mins / 1440)}d ago`;
   };
 
+  const getSessionGroup = (session) => {
+    if (session.pinned) return "Pinned";
+    if (!session.lastActiveAt) return "Older";
+    
+    const d = new Date(session.lastActiveAt);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return "Today";
+    
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    
+    if (now.getTime() - d.getTime() < 7 * 24 * 60 * 60 * 1000) return "Previous 7 Days";
+    
+    return "Older";
+  };
+
+  // Group sessions
+  const groupedSessions = sessions.reduce((groups, session) => {
+    const group = getSessionGroup(session);
+    if (!groups[group]) groups[group] = [];
+    groups[group].push(session);
+    return groups;
+  }, {});
+
+  const groupOrder = ["Pinned", "Today", "Yesterday", "Previous 7 Days", "Older"];
+
   return (
-    <div ref={containerRef} className="w-72 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-200 flex flex-col h-screen">
+    <div ref={containerRef} className="w-72 bg-[#0f1117] flex flex-col h-screen border-r border-slate-800/50">
       {/* Header & New Chat */}
-      <div className="px-5 py-5 border-b border-slate-800/50">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <MessageSquare className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-semibold text-white">Conversations</span>
-          </div>
-        </div>
+      <div className="p-4">
         <button
           onClick={onNewSession}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm font-medium rounded-xl transition-all duration-300 shadow-lg shadow-indigo-500/25"
+          className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/20 group"
         >
-          <Plus className="w-4 h-4" />
-          New Chat
+          <div className="p-1 bg-white/20 rounded-lg">
+            <Plus className="w-4 h-4 text-white" />
+          </div>
+          <span>New Chat</span>
         </button>
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+      <div className="px-4 pb-2">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
           <input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-800 rounded-lg text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
           />
         </div>
       </div>
 
       {/* Sessions */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-        {sessions.map((s) => (
-          <div
-            key={s.sessionId}
-            className={`group relative rounded-xl cursor-pointer transition-all duration-200 ${
-              s.sessionId === currentSession
-                ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30"
-                : "hover:bg-slate-800/50 border border-transparent"
-            }`}
-          >
-            <div className="px-4 py-3 flex items-start justify-between">
-              <div className="flex-1 min-w-0" onClick={() => onSelectSession(s.sessionId)}>
-                {editingId === s.sessionId ? (
-                  <input
-                    value={name}
-                    autoFocus
-                    onChange={(e) => setName(e.target.value)}
-                    onBlur={() => { onRename(s.sessionId, name); setEditingId(null); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") { onRename(s.sessionId, name); setEditingId(null); } }}
-                    className="w-full bg-slate-700 text-white px-2 py-1 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-2">
-                      {s.pinned && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                      <span className="text-sm font-medium text-white truncate">{s.name || "New Chat"}</span>
-                    </div>
-                    {s.lastActiveAt && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <Clock className="w-3 h-3 text-slate-500" />
-                        <span className="text-xs text-slate-500">{formatTime(s.lastActiveAt)}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-6 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        {groupOrder.map((group) => {
+          const groupSessions = groupedSessions[group];
+          if (!groupSessions?.length) return null;
 
-              {/* Action buttons */}
-              <div className="hidden group-hover:flex items-center gap-1 ml-2">
-                <button onClick={(e) => { e.stopPropagation(); onPin(s.sessionId); }} className={`p-1.5 rounded-lg transition-colors relative ${s.pinned ? "text-amber-400" : "text-slate-400 hover:text-amber-400 hover:bg-slate-700"}`} title={s.pinned ? "Unpin" : "Pin"}>
-                  <Star className={`w-3.5 h-3.5 ${s.pinned ? "fill-amber-400" : ""}`} />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); setEditingId(s.sessionId); setName(s.name || ""); }} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors relative" title="Rename">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(s.sessionId); }} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors relative" title="Delete">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+          return (
+            <div key={group}>
+              <h3 className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {group}
+              </h3>
+              <div className="space-y-1">
+                {groupSessions.map((s) => (
+                  <div
+                    key={s.sessionId}
+                    className={`group relative rounded-lg cursor-pointer transition-all duration-200 ${
+                      s.sessionId === currentSession
+                        ? "bg-slate-800/80 text-white shadow-sm"
+                        : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
+                    }`}
+                  >
+                    <div className="px-3 py-2.5 flex items-center justify-between" onClick={() => onSelectSession(s.sessionId)}>
+                      <div className="flex-1 min-w-0 pr-2">
+                        {editingId === s.sessionId ? (
+                          <input
+                            value={name}
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => setName(e.target.value)}
+                            onBlur={() => { onRename(s.sessionId, name); setEditingId(null); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { onRename(s.sessionId, name); setEditingId(null); } }}
+                            className="w-full bg-slate-900 text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 border border-indigo-500/50"
+                          />
+                        ) : (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium truncate">{s.name || "New Chat"}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action buttons (visible on hover) */}
+                      {editingId !== s.sessionId && (
+                        <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${s.sessionId === currentSession ? 'opacity-100' : ''}`}>
+                          {!s.pinned && (
+                             <button onClick={(e) => { e.stopPropagation(); onPin(s.sessionId); }} className="p-1.5 rounded hover:bg-slate-700 text-slate-500 hover:text-amber-400 transition-colors" title="Pin">
+                                <Star className="w-3.5 h-3.5" />
+                              </button>
+                          )}
+                          {s.pinned && (
+                             <button onClick={(e) => { e.stopPropagation(); onPin(s.sessionId); }} className="p-1.5 rounded hover:bg-slate-700 text-amber-400 hover:text-slate-400 transition-colors" title="Unpin">
+                                <Star className="w-3.5 h-3.5 fill-current" />
+                             </button>
+                          )}
+                          <button onClick={(e) => { e.stopPropagation(); setEditingId(s.sessionId); setName(s.name || ""); }} className="p-1.5 rounded hover:bg-slate-700 text-slate-500 hover:text-white transition-colors" title="Rename">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); onDelete(s.sessionId); }} className="p-1.5 rounded hover:bg-slate-700 text-slate-500 hover:text-red-400 transition-colors" title="Delete">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Profile & Footer */}
-      <div className="px-4 py-4 border-t border-slate-800/50 relative">
-        <button
-          onClick={() => setProfileOpen(!profileOpen)}
-          className="flex items-center gap-2 w-full text-sm hover:bg-slate-800/50 px-3 py-2 rounded transition"
-        >
-          <User className="w-4 h-4" />
-          {dbUser?.name || "Profile"}
-        </button>
-
-        {profileOpen && (
-          <div className="absolute bottom-16 left-3 w-64 bg-slate-800 rounded-lg shadow-lg p-3 z-20">
-            <Link to="/profile" className="block px-3 py-2 hover:bg-slate-700 rounded">
-              Edit Profile
-            </Link>
-            <button onClick={logout} className="w-full text-left px-3 py-2 hover:bg-slate-700 rounded">
-              Logout
-            </button>
+          );
+        })}
+        
+        {sessions.length === 0 && (
+          <div className="text-center py-10 px-4">
+             <div className="w-12 h-12 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-3">
+               <MessageSquare className="w-6 h-6 text-slate-600" />
+             </div>
+             <p className="text-slate-500 text-sm">No conversations yet</p>
           </div>
         )}
+      </div>
 
-        <div className="flex items-center justify-center gap-2 mt-3">
-          <img src="/logo.svg" className="w-5 h-5" />
-          <span className="text-xs text-slate-500">Resume AI</span>
+      {/* Profile Footer */}
+      <div className="p-4 border-t border-slate-800 bg-[#0f1117]">
+        <div className="relative">
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-slate-800 transition-colors group"
+          >
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium shadow-md">
+              {dbUser?.name?.charAt(0).toUpperCase() || <User className="w-5 h-5" />}
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">{dbUser?.name || "User"}</p>
+              <p className="text-xs text-slate-500 truncate">Free Plan</p>
+            </div>
+            {/* <ChevronDown className="w-4 h-4 text-slate-500" /> */}
+          </button>
+
+          {profileOpen && (
+            <div className={`absolute bottom-full left-0 w-full mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-50`}>
+              <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                <User className="w-4 h-4" />
+                Profile Settings
+              </Link>
+              <div className="h-px bg-slate-700/50 my-0"></div>
+              <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left">
+                <Trash2 className="w-4 h-4" /> 
+                <span className="ml-[-3px]">Log Out</span> {/* Trash icon is slightly different size, visual adjustment */}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -4,6 +4,9 @@ import { auth } from "../firebase";
 import { Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import { authErrorMessage } from "../utils/authErrors";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
+import { Mail, ArrowLeft } from "lucide-react";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -14,6 +17,8 @@ export default function ForgotPassword() {
   const resetPassword = async () => {
     try {
       setLoading(true);
+      setError("");
+      setMessage("");
       await sendPasswordResetEmail(auth, email);
       setMessage("If an account exists with this email, you will receive a password reset link shortly.");
     } catch (err) {
@@ -24,24 +29,47 @@ export default function ForgotPassword() {
   };
 
   return (
-    <AuthLayout title="Reset Password">
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-      {message && <p className="text-green-500 text-sm mb-4">{message}</p>}
+    <AuthLayout 
+      title="Reset Password"
+      subtitle="Enter your email to receive instructions"
+    >
+      {error && (
+        <div className="p-4 mb-6 text-sm text-red-200 bg-red-500/10 border border-red-500/20 rounded-xl animate-shake">
+          {error}
+        </div>
+      )}
+      {message && (
+        <div className="p-4 mb-6 text-sm text-emerald-200 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+          {message}
+        </div>
+      )}
 
-      <input
-        className="input-field mb-4"
-        placeholder="Enter your email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <div className="space-y-6">
+        <Input
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          icon={Mail}
+        />
 
-      <button onClick={resetPassword} disabled={loading} className="primary-btn">
-        {loading ? "Sending..." : "Send Reset Link"}
-      </button>
+        <Button 
+          onClick={resetPassword} 
+          isLoading={loading} 
+          className="w-full"
+        >
+          Send Reset Link
+        </Button>
 
-      <p className="text-center text-slate-300 mt-4">
-        <Link to="/login" className="link-text">Back to Login</Link>
-      </p>
+        <div className="text-center mt-6">
+          <Link 
+            to="/login" 
+            className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Login
+          </Link>
+        </div>
+      </div>
     </AuthLayout>
   );
 }

@@ -74,20 +74,20 @@ const MessageInput = ({ onSend, onUpload }) => {
   const handleUploadClick = () => fileInputRef.current.click();
 
   return (
-    <div className="border-t border-slate-100 bg-white/80 backdrop-blur-xl px-4 md:px-8 py-4">
+    <div className="border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-xl px-4 md:px-8 py-4">
       <div className="max-w-4xl mx-auto">
         <div
-          className={`flex items-center gap-3 p-2 rounded-2xl transition-all duration-300 ${
+          className={`glass-panel flex items-center gap-3 p-2 rounded-2xl transition-all duration-300 ${
             isFocused
-              ? "bg-white shadow-xl shadow-slate-200/50 ring-2 ring-indigo-500/20"
-              : "bg-slate-50 hover:bg-slate-100/80"
+              ? "ring-2 ring-indigo-500/50 border-indigo-500/50 bg-slate-800/80"
+              : "border-slate-700/50 bg-slate-800/40 hover:bg-slate-800/60"
           }`}
         >
           {/* Upload Button */}
           <button
             onClick={handleUploadClick}
             title="Upload Resume"
-            className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-indigo-600 transition-all duration-200"
+            className="p-3 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-slate-400 hover:text-white transition-all duration-200"
           >
             <Paperclip className="w-5 h-5" />
           </button>
@@ -114,7 +114,7 @@ const MessageInput = ({ onSend, onUpload }) => {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            className="flex-1 bg-transparent border-0 px-3 py-2.5 text-[15px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+            className="flex-1 bg-transparent border-0 px-3 py-2.5 text-[15px] text-white placeholder:text-slate-500 focus:outline-none focus:ring-0"
           />
 
           {/* Send Button */}
@@ -123,16 +123,16 @@ const MessageInput = ({ onSend, onUpload }) => {
             disabled={!text.trim()}
             className={`p-3 rounded-xl transition-all duration-300 ${
               text.trim()
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40"
-                : "bg-slate-100 text-slate-300 cursor-not-allowed"
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transform hover:scale-105 active:scale-95"
+                : "bg-slate-700/50 text-slate-500 cursor-not-allowed"
             }`}
           >
             <Send className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-3">
-          Press Enter to send • Upload PDF or TXT files
+        <p className="text-center text-xs text-slate-500 mt-3 font-medium">
+          Resume AI can make mistakes. Please double-check important information.
         </p>
       </div>
     </div>

@@ -78,29 +78,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Download, Sparkles } from "lucide-react";
 
 const TextRenderer = ({ content }) => (
-  <div className="whitespace-pre-wrap break-words leading-relaxed">{content}</div>
+  <div className="whitespace-pre-wrap break-words leading-relaxed text-slate-300">{content}</div>
 );
 
 const PdfViewerCard = ({ url }) => (
   <motion.div 
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
-    className="w-full max-w-2xl rounded-2xl overflow-hidden bg-gradient-to-br from-slate-50 to-white border border-slate-200/60 shadow-xl shadow-slate-200/50"
+    className="w-full max-w-2xl rounded-2xl overflow-hidden glass-panel border border-slate-700/50 shadow-2xl"
   >
-    <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-slate-100">
+    <div className="flex items-center justify-between px-5 py-4 bg-slate-800/50 border-b border-slate-700/50 backdrop-blur-md">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
           <FileText className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className="font-semibold text-slate-800">Resume Ready</p>
-          <p className="text-xs text-slate-500">Your enhanced resume is complete</p>
+          <p className="font-semibold text-white">Resume Ready</p>
+          <p className="text-xs text-slate-400">Your enhanced resume is complete</p>
         </div>
       </div>
       <a
         href={url}
         download="enhanced_resume.pdf"
-        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 hover:-translate-y-0.5"
+        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5"
       >
         <Download className="w-4 h-4" />
         Download
@@ -108,7 +108,7 @@ const PdfViewerCard = ({ url }) => (
     </div>
     <iframe
       src={`${url}#view=FitH&toolbar=0`}
-      className="w-full h-[420px] bg-white"
+      className="w-full h-[500px] bg-slate-900"
       title="PDF Preview"
     />
   </motion.div>
@@ -119,7 +119,7 @@ const TypingIndicator = () => (
     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
       <Sparkles className="w-4 h-4 text-white" />
     </div>
-    <div className="bg-white px-5 py-3.5 rounded-2xl rounded-bl-md shadow-sm border border-slate-100">
+    <div className="glass-panel px-5 py-3.5 rounded-2xl rounded-bl-md shadow-sm border border-slate-700/50">
       <div className="flex gap-1.5">
         {[0, 1, 2].map((i) => (
           <span
@@ -141,8 +141,18 @@ const ChatWindow = ({ messages, isTyping }) => {
   }, [messages, isTyping]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 bg-gradient-to-b from-slate-50 to-white">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 custom-scrollbar">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-[50vh] text-center opacity-0 animate-fade-in" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shadow-inner border border-white/5 mb-6">
+                 <Sparkles className="w-10 h-10 text-indigo-400" />
+             </div>
+             <h2 className="text-2xl font-bold text-white mb-2">How can I help you today?</h2>
+             <p className="text-slate-400 max-w-md">I can help you build, analyze, or rewrite your resume to increase your chances of getting hired.</p>
+          </div>
+        )}
+
         <AnimatePresence mode="popLayout">
           {messages.map((msg, i) => {
             const isUser = msg.sender === "User";
@@ -163,7 +173,7 @@ const ChatWindow = ({ messages, isTyping }) => {
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] md:max-w-xl ${
+                  className={`max-w-[85%] md:max-w-2xl ${
                     isPdf ? "w-full" : ""
                   }`}
                 >
@@ -171,21 +181,21 @@ const ChatWindow = ({ messages, isTyping }) => {
                     <PdfViewerCard url={msg.pdfUrl} />
                   ) : (
                     <div
-                      className={`px-5 py-3.5 text-[15px] shadow-sm ${
+                      className={`px-6 py-4 text-[15px] shadow-sm leading-relaxed ${
                         isUser
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-indigo-500/20"
-                          : "bg-white text-slate-700 rounded-2xl rounded-bl-md border border-slate-100"
+                          ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-indigo-500/20"
+                          : "glass-panel text-slate-200 rounded-2xl rounded-bl-md border border-slate-700/50"
                       }`}
                     >
-                      <TextRenderer content={msg.text} />
+                      {isUser ? msg.text : <TextRenderer content={msg.text} />}
                     </div>
                   )}
                 </div>
                 {isUser && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-md flex-shrink-0">
-                    <span className="text-white text-xs font-semibold">U</span>
-                  </div>
-                )}
+                   <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shadow-md flex-shrink-0 border border-slate-600">
+                     <span className="text-white text-xs font-semibold">ME</span>
+                   </div>
+                 )}
               </motion.div>
             );
           })}

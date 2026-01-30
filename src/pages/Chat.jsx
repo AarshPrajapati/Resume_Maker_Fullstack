@@ -371,7 +371,8 @@ import React, { useState, useEffect } from "react";
 import ChatWindow from "../components/chat/ChatWindow";
 import MessageInput from "../components/chat/MessageInput";
 import Sidebar from "../components/chat/Sidebar";
-import { LogOut, Plus, Menu, X, Sparkles } from "lucide-react";
+import Loader from "../components/ui/Loader";
+import { LogOut, Plus, Menu, X } from "lucide-react";
 import { auth } from "../firebase";
 import { extractTextFromPDF } from "../utils/pdfExtractor";
 import { generatePdfBlobFromHtml } from "../utils/pdfGenerator";
@@ -673,6 +674,7 @@ export default function Chat() {
     setProfile(null);
     setSessionId(null);
     setMessages([]);
+    setSidebarOpen(false);
   };
 
   /* ===== Filter + sort sessions ===== */
@@ -686,29 +688,20 @@ export default function Chat() {
   });
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/30 animate-pulse">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <p className="text-slate-500 font-medium">Loading your workspace...</p>
-        </div>
-      </div>
-    );
+    return <Loader fullScreen text="Loading your workspace..." />;
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-900 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-black text-white overflow-hidden">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div
-        className={`fixed md:relative z-50 md:z-auto transform transition-transform duration-300 ${
+        className={`fixed md:relative z-50 md:z-auto h-full transform transition-transform duration-300 ease-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
@@ -725,23 +718,26 @@ export default function Chat() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 md:px-6 py-4 sticky top-0 z-30">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-900/50">
+        <header className="flex items-center justify-between glass-panel border-b border-slate-700/50 px-4 md:px-6 py-4 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors"
+              className="md:hidden p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                {/* <Sparkles className="w-5 h-5 text-white" /> */}
-                <img src="/logo.svg" className="w-9 h-9" />
+                <img src="/logo.svg" className="w-9 h-9" alt="Logo" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-slate-800">Resume AI</h1>
-                <p className="text-xs text-slate-500">Your intelligent assistant</p>
+              <div className="flex flex-col">
+                <h1 className="text-sm font-semibold text-white">
+                   {sessions.find(s => s.sessionId === sessionId)?.name || "Resume AI"}
+                </h1>
+                <p className="text-xs text-slate-500">
+                  {sessions.find(s => s.sessionId === sessionId) ? "Chat Session" : "Your intelligent assistant"}
+                </p>
               </div>
             </div>
           </div>
@@ -749,18 +745,17 @@ export default function Chat() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleNewSession}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-300"
+              className="md:hidden flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-all duration-300 shadow-lg shadow-indigo-500/20"
             >
               <Plus className="w-4 h-4" />
-              New Chat
+              New
             </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 text-sm font-medium rounded-xl transition-all duration-300"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+            {/* Desktop: Only show actions that aren't in sidebar if minimal look desired, but 'New Chat' is good to keep accessible */}
+            <div className="hidden md:flex items-center gap-3">
+               <span className="text-xs text-slate-500 px-3 py-1 bg-slate-800/50 rounded-full border border-slate-700/50">
+                  {user?.name || user?.email}
+               </span>
+            </div>
           </div>
         </header>
 

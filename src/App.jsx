@@ -9,18 +9,13 @@ import Onboarding from "./pages/Onboarding";
 import { useAuth } from "./context/AuthContext";
 import Profile from "./pages/Profile";
 
+import Loader from "./components/ui/Loader";
+
 function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-indigo-950">
-        <div className="flex flex-col items-center gap-4">
-          <img src="/logo.svg" className="w-12 h-12 animate-pulse" />
-          <p className="text-slate-400 text-sm">Loading Resume AI...</p>
-        </div>
-      </div>
-    );
+    return <Loader fullScreen text="Initializing App..." />;
   }
   return (
     <Routes>

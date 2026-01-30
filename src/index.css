@@ -1,17 +1,77 @@
 @import "tailwindcss";
-/* Tailwind utility classes for consistency */
+
+:root {
+  /* Brand Colors */
+  --color-primary: #6366f1; /* Indigo 500 */
+  --color-primary-dark: #4f46e5; /* Indigo 600 */
+  --color-secondary: #a855f7; /* Purple 500 */
+  
+  /* Backgrounds */
+  --bg-deep: #0f172a; /* Slate 900 */
+  --bg-surface: #1e293b; /* Slate 800 */
+  
+  /* Text */
+  --text-main: #f8fafc; /* Slate 50 */
+  --text-muted: #94a3b8; /* Slate 400 */
+}
+
+/* Base Styles */
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-deep); 
+}
+::-webkit-scrollbar-thumb {
+  background: #334155; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569; 
+}
+
+/* Glassmorphism Utility */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Legacy Support (Do not break existing classes immediately) */
 .input-field {
-  @apply w-full px-4 py-3 mb-4 rounded-xl bg-slate-700 text-white border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500;
+  @apply w-full px-4 py-3 mb-4 rounded-xl bg-slate-800/50 text-white border border-slate-700 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all;
 }
 
 .primary-btn {
-  @apply w-full py-3 mb-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium transition-all duration-300 shadow-lg shadow-indigo-500/25 disabled:opacity-50;
+  @apply w-full py-3 mb-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium transition-all duration-300 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-[0.98];
 }
 
 .secondary-btn {
-  @apply w-full py-3 mb-4 rounded-xl border border-slate-600 hover:bg-slate-700 transition-all duration-300;
+  @apply w-full py-3 mb-4 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 transition-all duration-300;
 }
 
 .link-text {
-  @apply text-indigo-500 hover:underline;
+  @apply text-indigo-400 hover:text-indigo-300 hover:underline transition-colors;
 }
