@@ -7,6 +7,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [dbUser, setDbUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchDbUser = async (firebaseUser) => {
@@ -27,21 +28,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-  const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
-    setUser(firebaseUser);
+    const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
 
-    if (firebaseUser) {
-      // fire fetchDbUser in background — do NOT block UI
-      fetchDbUser(firebaseUser).catch(err => console.error("Backend sync failed", err));
-    } else {
-      setDbUser(null);
-    }
+      if (firebaseUser) {
+        const t = await firebaseUser.getIdToken();
+        setToken(t);
+        // fire fetchDbUser in background — do NOT block UI
+        fetchDbUser(firebaseUser).catch(err => console.error("Backend sync failed", err));
+      } else {
+        setDbUser(null);
+        setToken(null);
+        localStorage.removeItem("chat_sessions_cache");
+        localStorage.removeItem("last_messages_cache");
+      }
 
-    // Always set loading false immediately
-    setLoading(false);
-  });
+      // Always set loading false immediately
+      setLoading(false);
+    });
 
-  return unsub;
+    return unsub;
   }, []);
 
 
@@ -58,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, dbUser, token, loading, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

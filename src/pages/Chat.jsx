@@ -374,20 +374,31 @@ import Sidebar from "../components/chat/Sidebar";
 import Loader from "../components/ui/Loader";
 import { LogOut, Plus, Menu, X } from "lucide-react";
 import { auth } from "../firebase";
-import { extractTextFromPDF } from "../utils/pdfExtractor";
-import { generatePdfBlobFromHtml } from "../utils/pdfGenerator";
+import { useAuth } from "../context/AuthContext";
+// Imports removed for lazy loading
+// import { extractTextFromPDF } from "../utils/pdfExtractor";
+// import { generatePdfBlobFromHtml } from "../utils/pdfGenerator";
 
 export default function Chat() {
-  const [messages, setMessages] = useState([]);
-  const [sessionId, setSessionId] = useState(null);
-  const [sessions, setSessions] = useState([]);
+  const { user: authUser, token: authToken, dbUser } = useAuth();
+  
+  const [sessions, setSessions] = useState(() => {
+    const cached = localStorage.getItem("chat_sessions_cache");
+    return cached ? JSON.parse(cached) : [];
+  });
+
+  const [messages, setMessages] = useState(() => {
+    const cached = localStorage.getItem("last_messages_cache");
+    return cached ? JSON.parse(cached) : [];
+  });
+
+  const [sessionId, setSessionId] = useState(localStorage.getItem("lastSessionId") || null);
   const [isTyping, setIsTyping] = useState(false);
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(dbUser || null);
+  const [loading, setLoading] = useState(!sessions.length);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
   const API_URL = import.meta.env.VITE_API_URL;
   const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
@@ -400,40 +411,33 @@ export default function Chat() {
   document.title = "Resume AI • Chat";
   }, []);
 
-  /* ===== Firebase auth + profile ===== */
+  /* ===== Sync Profile from AuthContext ===== */
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (u) => {
-      if (!u) return;
-      const t = await u.getIdToken();
-      setUser({ uid: u.uid, name: u.displayName || u.email });
-      setToken(t);
-
-      const res = await fetch(`${API_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      const data = await res.json();
-      setProfile(data);
-    });
-    return () => unsub();
-  }, []);
+    if (dbUser) setProfile(dbUser);
+  }, [dbUser]);
 
   /* ===== Load sessions + messages ===== */
   useEffect(() => {
-    if (!token) return;
+    if (!authToken) return;
 
     const loadSessions = async () => {
       try {
         const res = await fetch(`${API_URL}/api/chat/all`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${authToken}` },
         });
         const data = await res.json();
         const sessionsData = data.sessions || [];
+
+        // Save to cache
+        if (sessionsData.length > 0) {
+          localStorage.setItem("chat_sessions_cache", JSON.stringify(sessionsData));
+        }
 
         // New user → auto-create session
         if (!sessionsData.length) {
           const sRes = await fetch(`${API_URL}/api/chat/session`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${authToken}` },
           });
           const newSession = await sRes.json();
           setSessions([newSession]);
@@ -446,18 +450,22 @@ export default function Chat() {
 
         // Restore last session
         const lastSessionId = localStorage.getItem("lastSessionId");
-        const preferred =
-          sessionsData.find((s) => s.sessionId === lastSessionId) ||
-          sessionsData[0];
+        const preferredId = lastSessionId && sessionsData.some(s => s.sessionId === lastSessionId) 
+          ? lastSessionId 
+          : sessionsData[0].sessionId;
 
-        setSessionId(preferred.sessionId);
+        setSessionId(preferredId);
 
         const histRes = await fetch(
-          `${API_URL}/api/chat/${preferred.sessionId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          `${API_URL}/api/chat/${preferredId}`,
+          { headers: { Authorization: `Bearer ${authToken}` } }
         );
         const history = await histRes.json();
-        setMessages(Array.isArray(history) ? history : []);
+        const finalMessages = Array.isArray(history) ? history : [];
+        setMessages(finalMessages);
+        
+        // Cache messages for this session
+        localStorage.setItem("last_messages_cache", JSON.stringify(finalMessages));
       } catch (err) {
         console.error("Failed to load sessions:", err);
       } finally {
@@ -466,18 +474,18 @@ export default function Chat() {
     };
 
     loadSessions();
-  }, [token]);
+  }, [authToken]);
 
   /* ===== Save message ===== */
   const saveMessage = async (msg) => {
-    if (!token || !sessionId) return;
+    if (!authToken || !sessionId) return;
 
     try {
       const res = await fetch(`${API_URL}/api/chat/${sessionId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(msg),
       });
@@ -502,6 +510,7 @@ export default function Chat() {
     setIsTyping(true);
     try {
       if (aiText.includes("<RESUME_FINAL>") || /<[^>]+>/.test(aiText)) {
+        const { generatePdfBlobFromHtml } = await import("../utils/pdfGenerator");
         const pdfBlob = await generatePdfBlobFromHtml(aiText);
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const pdfMsg = {
@@ -539,7 +548,7 @@ export default function Chat() {
         body: JSON.stringify({
           sessionId,
           message: text,
-          user: { name: user?.name },
+          user: { name: authUser?.displayName || authUser?.email },
           onboarding: profile?.onboarding || {},
         }),
       });
@@ -563,6 +572,7 @@ export default function Chat() {
 
     try {
       setIsTyping(true);
+      const { extractTextFromPDF } = await import("../utils/pdfExtractor");
       const pdfText = await extractTextFromPDF(file);
       const res = await fetch(N8N_WEBHOOK_URL, {
         method: "POST",
@@ -570,7 +580,7 @@ export default function Chat() {
         body: JSON.stringify({
           sessionId,
           message: pdfText,
-          user: { name: user?.name },
+          user: { name: authUser?.displayName || authUser?.email },
           onboarding: profile?.onboarding || {},
         }),
       });
@@ -589,11 +599,11 @@ export default function Chat() {
 
   /* ===== Session actions ===== */
   const handleNewSession = async () => {
-    if (!token) return;
+    if (!authToken) return;
     try {
       const res = await fetch(`${API_URL}/api/chat/session`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
       const newSession = { sessionId: data.sessionId, name: data.name };
@@ -611,7 +621,7 @@ export default function Chat() {
     setSidebarOpen(false);
     try {
       const histRes = await fetch(`${API_URL}/api/chat/${sid}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const history = await histRes.json();
       setMessages(Array.isArray(history) ? history : []);
@@ -625,7 +635,7 @@ export default function Chat() {
     try {
       await fetch(`${API_URL}/api/chat/session/${sid}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ name: newName }),
       });
       setSessions((prev) =>
@@ -640,7 +650,7 @@ export default function Chat() {
     try {
       await fetch(`${API_URL}/api/chat/session/${sid}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       setSessions((prev) => prev.filter((s) => s.sessionId !== sid));
       if (sid === sessionId) {
@@ -656,7 +666,7 @@ export default function Chat() {
     try {
       const res = await fetch(`${API_URL}/api/chat/session/${sid}/pin`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
       setSessions((prev) =>
@@ -668,9 +678,10 @@ export default function Chat() {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem("chat_sessions_cache");
+    localStorage.removeItem("last_messages_cache");
+    localStorage.removeItem("lastSessionId");
     await auth.signOut();
-    setUser(null);
-    setToken(null);
     setProfile(null);
     setSessionId(null);
     setMessages([]);
@@ -753,7 +764,7 @@ export default function Chat() {
             {/* Desktop: Only show actions that aren't in sidebar if minimal look desired, but 'New Chat' is good to keep accessible */}
             <div className="hidden md:flex items-center gap-3">
                <span className="text-xs text-slate-500 px-3 py-1 bg-slate-800/50 rounded-full border border-slate-700/50">
-                  {user?.name || user?.email}
+                  {authUser?.displayName || authUser?.email}
                </span>
             </div>
           </div>

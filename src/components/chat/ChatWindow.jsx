@@ -74,7 +74,6 @@
 
 
 import React, { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Download, Sparkles } from "lucide-react";
 
 const TextRenderer = ({ content }) => (
@@ -82,11 +81,7 @@ const TextRenderer = ({ content }) => (
 );
 
 const PdfViewerCard = ({ url }) => (
-  <motion.div 
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    className="w-full max-w-2xl rounded-2xl overflow-hidden glass-panel border border-slate-700/50 shadow-2xl"
-  >
+  <div className="w-full max-w-2xl rounded-2xl overflow-hidden glass-panel border border-slate-700/50 shadow-2xl animate-scale-in">
     <div className="flex items-center justify-between px-5 py-4 bg-slate-800/50 border-b border-slate-700/50 backdrop-blur-md">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
@@ -111,7 +106,7 @@ const PdfViewerCard = ({ url }) => (
       className="w-full h-[500px] bg-slate-900"
       title="PDF Preview"
     />
-  </motion.div>
+  </div>
 );
 
 const TypingIndicator = () => (
@@ -153,53 +148,48 @@ const ChatWindow = ({ messages, isTyping }) => {
           </div>
         )}
 
-        <AnimatePresence mode="popLayout">
-          {messages.map((msg, i) => {
-            const isUser = msg.sender === "User";
-            const isPdf = msg.type === "pdf_ready";
+        {messages.map((msg, i) => {
+          const isUser = msg.sender === "User";
+          const isPdf = msg.type === "pdf_ready";
 
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className={`flex items-end gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+          return (
+            <div
+              key={i}
+              className={`flex items-end gap-3 animate-message-in ${isUser ? "justify-end" : "justify-start"}`}
+              style={{ animationDelay: `${i * 0.05}s` }}
+            >
+              {!isUser && (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+              )}
+              <div
+                className={`max-w-[85%] md:max-w-2xl ${
+                  isPdf ? "w-full" : ""
+                }`}
               >
-                {!isUser && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-white" />
+                {isPdf ? (
+                  <PdfViewerCard url={msg.pdfUrl} />
+                ) : (
+                  <div
+                    className={`px-6 py-4 text-[15px] shadow-sm leading-relaxed ${
+                      isUser
+                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-indigo-500/20"
+                        : "glass-panel text-slate-200 rounded-2xl rounded-bl-md border border-slate-700/50"
+                    }`}
+                  >
+                    {isUser ? msg.text : <TextRenderer content={msg.text} />}
                   </div>
                 )}
-                <div
-                  className={`max-w-[85%] md:max-w-2xl ${
-                    isPdf ? "w-full" : ""
-                  }`}
-                >
-                  {isPdf ? (
-                    <PdfViewerCard url={msg.pdfUrl} />
-                  ) : (
-                    <div
-                      className={`px-6 py-4 text-[15px] shadow-sm leading-relaxed ${
-                        isUser
-                          ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-indigo-500/20"
-                          : "glass-panel text-slate-200 rounded-2xl rounded-bl-md border border-slate-700/50"
-                      }`}
-                    >
-                      {isUser ? msg.text : <TextRenderer content={msg.text} />}
-                    </div>
-                  )}
-                </div>
-                {isUser && (
-                   <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shadow-md flex-shrink-0 border border-slate-600">
-                     <span className="text-white text-xs font-semibold">ME</span>
-                   </div>
-                 )}
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+              </div>
+              {isUser && (
+                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shadow-md flex-shrink-0 border border-slate-600">
+                   <span className="text-white text-xs font-semibold">ME</span>
+                 </div>
+               )}
+            </div>
+          );
+        })}
         
         {isTyping && <TypingIndicator />}
         
