@@ -400,7 +400,6 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const API_URL = import.meta.env.VITE_API_URL;
-  const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 
   // Save last session
@@ -422,11 +421,18 @@ export default function Chat() {
 
     const loadSessions = async () => {
       try {
+        console.log("📡 Loading sessions...");
         const res = await fetch(`${API_URL}/api/chat/all`, {
           headers: { Authorization: `Bearer ${authToken}` },
         });
+        
+        if (!res.ok) {
+          throw new Error(`Failed to load sessions: ${res.status}`);
+        }
+        
         const data = await res.json();
         const sessionsData = data.sessions || [];
+        console.log("✅ Sessions loaded:", sessionsData.length);
 
         // Save to cache
         if (sessionsData.length > 0) {
@@ -435,14 +441,22 @@ export default function Chat() {
 
         // New user → auto-create session
         if (!sessionsData.length) {
+          console.log("🆕 New user - creating session...");
           const sRes = await fetch(`${API_URL}/api/chat/session`, {
             method: "POST",
             headers: { Authorization: `Bearer ${authToken}` },
           });
+          
+          if (!sRes.ok) {
+            throw new Error(`Failed to create session: ${sRes.status}`);
+          }
+          
           const newSession = await sRes.json();
+          console.log("✅ New session created:", newSession.sessionId);
           setSessions([newSession]);
           setSessionId(newSession.sessionId);
           setMessages([]);
+          setLoading(false);
           return;
         }
 
@@ -454,20 +468,28 @@ export default function Chat() {
           ? lastSessionId 
           : sessionsData[0].sessionId;
 
+        console.log("📌 Setting sessionId:", preferredId);
         setSessionId(preferredId);
 
         const histRes = await fetch(
           `${API_URL}/api/chat/${preferredId}`,
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
+        
+        if (!histRes.ok) {
+          throw new Error(`Failed to load chat history: ${histRes.status}`);
+        }
+        
         const history = await histRes.json();
         const finalMessages = Array.isArray(history) ? history : [];
         setMessages(finalMessages);
         
         // Cache messages for this session
         localStorage.setItem("last_messages_cache", JSON.stringify(finalMessages));
+        console.log("✅ Chat history loaded:", finalMessages.length, "messages");
       } catch (err) {
-        console.error("Failed to load sessions:", err);
+        console.error("❌ Failed to load sessions:", err);
+        alert("Failed to load chat. Please refresh the page.");
       } finally {
         setLoading(false);
       }
@@ -536,28 +558,52 @@ export default function Chat() {
 
   /* ===== Send user message ===== */
   const handleSend = async (text) => {
+    // Ensure sessionId exists before sending
+    if (!sessionId) {
+      const aiMsg = {
+        sender: "AI",
+        text: "❌ Please wait for the session to load, or create a new session.",
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+      return;
+    }
+
     const userMsg = { sender: "User", text, createdAt: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     await saveMessage(userMsg);
 
     setIsTyping(true);
     try {
-      const res = await fetch(N8N_WEBHOOK_URL, {
+      const res = await fetch(`${API_URL}/api/ai/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           sessionId,
           message: text,
-          user: { name: authUser?.displayName || authUser?.email },
-          onboarding: profile?.onboarding || {},
+          conversationHistory: messages,
+          userContext: profile?.onboarding || {},
         }),
       });
-      const raw = await res.text();
-      const aiText = JSON.parse(raw)?.reply || raw;
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to get AI response");
+      }
+
+      const data = await res.json();
+      const aiText = data.reply;
       await processAiResponse(aiText);
     } catch (err) {
       console.error(err);
-      const aiMsg = { sender: "AI", text: "AI server error", createdAt: new Date() };
+      const aiMsg = {
+        sender: "AI",
+        text: `❌ ${err.message || "AI server error. Please try again."}`,
+        createdAt: new Date(),
+      };
       setMessages((prev) => [...prev, aiMsg]);
       await saveMessage(aiMsg);
       setIsTyping(false);
@@ -566,6 +612,12 @@ export default function Chat() {
 
   /* ===== Upload PDF ===== */
   const handleUpload = async (file) => {
+    // Ensure sessionId exists before uploading
+    if (!sessionId) {
+      alert("Please wait for the session to load, or create a new session before uploading.");
+      return;
+    }
+
     const uploadMsg = { sender: "User", text: `📄 Uploaded: ${file.name}`, createdAt: new Date() };
     setMessages((prev) => [...prev, uploadMsg]);
     await saveMessage(uploadMsg);
@@ -574,22 +626,36 @@ export default function Chat() {
       setIsTyping(true);
       const { extractTextFromPDF } = await import("../utils/pdfExtractor");
       const pdfText = await extractTextFromPDF(file);
-      const res = await fetch(N8N_WEBHOOK_URL, {
+
+      const res = await fetch(`${API_URL}/api/ai/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           sessionId,
-          message: pdfText,
-          user: { name: authUser?.displayName || authUser?.email },
-          onboarding: profile?.onboarding || {},
+          message: `I've uploaded my resume/cover letter. Here's the content:\n\n${pdfText}`,
+          conversationHistory: messages,
+          userContext: profile?.onboarding || {},
         }),
       });
-      const raw = await res.text();
-      const aiText = JSON.parse(raw)?.reply || raw;
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to process PDF");
+      }
+
+      const data = await res.json();
+      const aiText = data.reply;
       await processAiResponse(aiText);
     } catch (err) {
       console.error(err);
-      const errMsg = { sender: "AI", text: "❌ Failed to process PDF", createdAt: new Date() };
+      const errMsg = {
+        sender: "AI",
+        text: `❌ ${err.message || "Failed to process PDF"}`,
+        createdAt: new Date(),
+      };
       setMessages((prev) => [...prev, errMsg]);
       await saveMessage(errMsg);
     } finally {
